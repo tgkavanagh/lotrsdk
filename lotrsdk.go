@@ -5,105 +5,45 @@ import (
   "io/ioutil"
   "log"
   "net/http"
+  . "../lotrsdk/movie"
 )
 
 const (
-  MOVIE_API_URL = "https://the-one-api.dev/v2/movie"
+  LOTR_MOVIE_ENDPOINT_URL = "https://the-one-api.dev/v2/movie"
 )
 
-type LOTR_Movie struct {
-  Id string `json:"_id"`
-  Name string
-  RuntimeInMinutes int
-  BudgetInMillions float32
-  BoxOfficeRevenueInMillions float32
-  AcademyAwardNominations int
-  AcademyAwardWins int
-  RottenTomatoesScore float32
+type LOTR_Data struct {
+  movieEP Movie_API_Endpoint
+  response []byte
+  movies Movie_Franchise_Listing
 }
 
-type LOTR_Movies struct {
-  Docs []LOTR_Movie
-  Total int
-  Limit int
-  Offset int
-  page int
-  pages int
-}
+var lotr_movid_ids map[string]string
 
-type LOTR_Object struct {
-  bearer string
-  Response []byte
-  Movies LOTR_Movies
+/*******************************************************************************
+ *
+ ******************************************************************************/
+func CreateLOTRData(token string) LOTR_Data {
+  object := new(LOTR_Data)
+  object.movieEP.SetBearerToken(token)
+  object.movieEP.SetMovieEP = LOTR_MOVIE_ENDPOINT_URL
+
+  return object
 }
 
 /*******************************************************************************
  *
  ******************************************************************************/
-func (o *LOTR_Object) SetBearerToken(token string) int {
-  // Bearer token should not be an empty string
-  if token == "" {
-    return -1
-  }
+func (o *LOTR_Data) GetLOTRMovieData() int {
+  o.response = o.movieEP.GetMovieFranchiseDetailsRaw()
 
-  // Set object bearer token even if it is already set
-  o.bearer = "Bearer " + token
-  return 0
+  return o.movies.UnmarshalMovieFranchiseDetails(o.response)
 }
 
 /*******************************************************************************
  *
  ******************************************************************************/
-func (o *LOTR_Object) GetMovieDetails() int {
-  // Get details only if the object does not contain the info
-  if len(o.Response) == 0 {
-    log.Println("executing GET command")
-
-    // Create a new request using http
-    req, err := http.NewRequest("GET", MOVIE_API_URL, nil)
-
-    // add authorization header to the req
-    req.Header.Add("Authorization", o.bearer)
-
-    // Send req using http Client
-    client := &http.Client{}
-    resp, err := client.Do(req)
-    if err != nil {
-        log.Println("Error on response.\n[ERROR] -", err)
-        return -1
-    }
-
-    defer resp.Body.Close()
-
-    o.Response, err = ioutil.ReadAll(resp.Body)
-    if err != nil {
-        log.Println("Error while reading the response bytes:", err)
-        return -1
-    }
-  }
-
-  return 0
-}
-
-/*******************************************************************************
- *
- ******************************************************************************/
-func (o *LOTR_Object) UnmarshalMovieDetails() int {
-  if o.GetMovieDetails() == 0 {
-    err := json.Unmarshal(o.Response, &(o.Movies))
-    if err != nil {
-      log.Printf("Failed to unmarshall response: (%s)\n", err)
-      return -1
-    }
-  }
-
-  return 0
-}
-
-/*******************************************************************************
- *
- ******************************************************************************/
-func (o LOTR_Object) GetMovieId() map[string]string {
+func (o *LOTR_Data) GetMovieId() map[string]string {
   if o.Movies.Total != 0 {
     results := make(map[string]string)
 
@@ -120,7 +60,7 @@ func (o LOTR_Object) GetMovieId() map[string]string {
 /*******************************************************************************
  *
  ******************************************************************************/
-func (o LOTR_Object) GetMovieRunTimeInMinutes() map[string]int {
+func (o LOTR_Data) GetMovieRunTimeInMinutes() map[string]int {
   if o.Movies.Total != 0 {
     results := make(map[string]int)
 
@@ -137,7 +77,7 @@ func (o LOTR_Object) GetMovieRunTimeInMinutes() map[string]int {
 /*******************************************************************************
  *
  ******************************************************************************/
-func (o LOTR_Object) GetMovieBudgetInMillions() map[string]float32 {
+func (o LOTR_Data) GetMovieBudgetInMillions() map[string]float32 {
   if o.Movies.Total != 0 {
     results := make(map[string]float32)
 
@@ -154,7 +94,7 @@ func (o LOTR_Object) GetMovieBudgetInMillions() map[string]float32 {
 /*******************************************************************************
  *
  ******************************************************************************/
-func (o LOTR_Object) GetMovieRevenueInMillions() map[string]float32 {
+func (o LOTR_Data) GetMovieRevenueInMillions() map[string]float32 {
   if o.Movies.Total != 0 {
     results := make(map[string]float32)
 
@@ -172,7 +112,7 @@ func (o LOTR_Object) GetMovieRevenueInMillions() map[string]float32 {
 /*******************************************************************************
  *
  ******************************************************************************/
-func (o LOTR_Object) GetMovieAcademyAwardNominations() map[string]int {
+func (o LOTR_Data) GetMovieAcademyAwardNominations() map[string]int {
   if o.Movies.Total != 0 {
     results := make(map[string]int)
 
@@ -189,7 +129,7 @@ func (o LOTR_Object) GetMovieAcademyAwardNominations() map[string]int {
 /*******************************************************************************
  *
  ******************************************************************************/
-func (o LOTR_Object) GetMovieAcademyAwardWins() map[string]int {
+func (o LOTR_Data) GetMovieAcademyAwardWins() map[string]int {
   if o.Movies.Total != 0 {
     results := make(map[string]int)
 
@@ -206,7 +146,7 @@ func (o LOTR_Object) GetMovieAcademyAwardWins() map[string]int {
 /*******************************************************************************
  *
  ******************************************************************************/
-func (o LOTR_Object) GetMovieRottenTomatoesScore() map[string]float32 {
+func (o LOTR_Data) GetMovieRottenTomatoesScore() map[string]float32 {
   if o.Movies.Total != 0 {
     results := make(map[string]float32)
 
